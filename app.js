@@ -629,7 +629,7 @@ V.notif=()=>{
 V.account=()=>{
   const p=S.profile,pts=myPoints(),L=cfg().loyalty;
   const initials=(p.name||'You').split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase();
-  const isAdminOK=store.user===null||store.user?.is_anonymous||store.adminOK===true;
+  const isAdminOK=store.user===null||store.user?.is_anonymous||store.adminOK!==false;
   return{body:`${topbar()}<h1 class="ttl mb8">Account</h1>
   <div class="card row g12"><div style="width:52px;height:52px;border-radius:50%;background:var(--pink-l);color:var(--pink-d);display:grid;place-items:center;font:800 18px var(--d)">${esc(initials)}</div><div class="f1"><div class="b">${esc(p.name||'Guest')}</div><div class="mut sm">${myOrders().length} orders${p.phone?' · '+esc(p.phone):''}</div></div>${L.on?`<span class="pill pk">${ic('star','style="width:12px;height:12px"')}${pts} pts</span>`:''}</div>
   <div class="row sp mt16 mb8"><h3 class="ttl s">My Designs</h3><button class="btn t sm" data-act="nav" data-v="designs">See all</button></div>
