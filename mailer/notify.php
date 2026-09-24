@@ -20,6 +20,8 @@ $payload = json_decode(file_get_contents('php://input'), true);
 $event = strtoupper((string)($payload['type'] ?? $payload['eventType'] ?? 'UPDATE'));
 $order = $payload['record'] ?? $payload['new_record'] ?? $payload['data'] ?? null;
 $order = is_array($order['data'] ?? null) ? $order['data'] : $order;
+$oldOrder = $payload['old_record'] ?? $payload['oldRecord'] ?? $payload['old_data'] ?? [];
+$oldOrder = is_array($oldOrder['data'] ?? null) ? $oldOrder['data'] : $oldOrder;
 
 if (!is_array($order) || empty($order['id'])) {
     http_response_code(400);
@@ -30,12 +32,12 @@ if (!is_array($order) || empty($order['id'])) {
 $customer = $order['customer'] ?? [];
 $customerEmail = filter_var((string)($customer['email'] ?? ''), FILTER_VALIDATE_EMAIL);
 $ownerEmail = filter_var((string)(getenv('OWNER_EMAIL') ?: ''), FILTER_VALIDATE_EMAIL);
+$receiptConfirmed = !empty($order['customerReceived']) && empty($oldOrder['customerReceived']);
 $recipients = [];
 
-if ($event === 'INSERT' && $ownerEmail) {
+if (($event === 'INSERT' || $receiptConfirmed) && $ownerEmail) {
     $recipients[] = [$ownerEmail, 'DeBadger owner'];
-}
-if ($event !== 'INSERT' && $customerEmail) {
+} elseif ($event !== 'INSERT' && $customerEmail) {
     $recipients[] = [$customerEmail, (string)($customer['name'] ?? 'Customer')];
 }
 
@@ -55,10 +57,12 @@ try {
     $mail->Port = (int)(getenv('SMTP_PORT') ?: 587);
     $mail->setFrom(getenv('MAIL_FROM') ?: $mail->Username, getenv('MAIL_FROM_NAME') ?: 'DeBadger Studio');
     $mail->isHTML(true);
-    $mail->Subject = $event === 'INSERT' ? 'New DeBadger order ' . $order['id'] : 'Order update ' . $order['id'];
+    $mail->Subject = $receiptConfirmed
+        ? 'Delivery received for order ' . $order['id']
+        : ($event === 'INSERT' ? 'New DeBadger order ' . $order['id'] : 'Order update ' . $order['id']);
     $mail->Body = sprintf(
         '<h2>%s</h2><p>Order <strong>%s</strong></p><p>Customer: %s</p><p>Status: %s</p><p>Total: ₱%s</p>',
-        htmlspecialchars($event === 'INSERT' ? 'New order received' : 'Your order was updated', ENT_QUOTES, 'UTF-8'),
+        htmlspecialchars($receiptConfirmed ? 'Customer confirmed delivery receipt' : ($event === 'INSERT' ? 'New order received' : 'Your order was updated'), ENT_QUOTES, 'UTF-8'),
         htmlspecialchars((string)$order['id'], ENT_QUOTES, 'UTF-8'),
         htmlspecialchars((string)($customer['name'] ?? ''), ENT_QUOTES, 'UTF-8'),
         htmlspecialchars((string)($order['stage'] ?? 'Processing'), ENT_QUOTES, 'UTF-8'),

@@ -183,6 +183,7 @@ const orderCode=()=>'PM-'+String(Date.now()%1e6).padStart(6,'0');
 const orderQty=o=>o.items.reduce((s,i)=>s+i.qty,0);
 const orderSummary=o=>o.items.length===1?o.items[0].label:`${o.items[0].label} + ${o.items.length-1} more`;
 function deliveryStatus(o){
+  if(o.customerReceived)return o.pickup?'Picked up':'Received';
   if(o.pickup)return o.stage<7?'Preparing':o.stage===7?'Ready for pickup':o.stage>=9?'Picked up':'Ready for pickup';
   return o.stage<7?'Preparing':o.stage===7?'Packed':o.stage===8?'In transit':'Delivered';
 }
@@ -585,7 +586,7 @@ async function placeOrder(){
     const L=cfg().loyalty;
     const o={id,ownerKey:DEV,createdAt:now,customer:{name:v('name'),phone:v('phone'),email:v('email')},
       delivery:pick?null:{street:v('street'),city:v('city'),prov:v('prov'),zip:v('zip')},pickup:!!pick,ship:{id:c.sh.id,label:c.sh.label,fee:c.fee},
-      payment:{id:pay.id,label:pay.label,status:PAYST[0],info:pay.info||''},items,note:S.note.trim(),internal:'',
+      payment:{id:pay.id,label:pay.label,status:PAYST[0],info:pay.info||''},items,note:S.note.trim(),internal:'',customerReceived:false,receivedAt:null,
       subtotal:c.sub+c.disc,discount:c.disc,redeem:c.off,redeemedPts:c.pts,total:c.total,stage:2,seen:false,consumed:false,pointsAwarded:0,
       log:[{t:now,msg:MSG[0]},{t:now+1,msg:MSG[1]}]};
     await saveOrder(o);
@@ -618,6 +619,8 @@ V.track=()=>{
   <div class="card row g12 mt8" style="background:var(--pink);color:#fff">${ic('design','style="width:24px;height:24px"')}<div><div class="xs" style="opacity:.85">Current stage</div><div class="b" style="font-size:17px">${stepLabel(o,o.stage)} — ${o.stage>=9?'Done':'In Progress'}</div></div></div>
   <div class="tl mt16">${steps.map(i=>`<div class="s ${i<o.stage?'d':i===o.stage?'c':''}">${stepLabel(o,i)}${i===o.stage?`<small>${esc(stepMsg(o,i))}</small>`:''}</div>`).join('')}</div>
   ${o.payment.status==='Awaiting payment'?`<div class="pinfo"><b>${esc(o.payment.label)}:</b> ${esc(o.payment.info)} Use <b>${o.id}</b> as your reference.</div>`:''}
+  ${!o.pickup&&o.stage>=8&&!o.customerReceived?`<div class="card mt12" style="background:var(--green-l);border-color:var(--green)"><div class="b">Have you received your order?</div><p class="mut sm mt4">Confirm once the delivery has arrived. This lets the shop know your items were received.</p><button class="btn w mt8" data-act="confirmreceived" data-id="${o.id}" style="background:var(--green)">Confirm delivery received</button></div>`:''}
+  ${o.customerReceived?`<div class="pinfo mt12"><b>Delivery received.</b> The shop was notified on ${fmtDate(o.receivedAt)}.</div>`:''}
   <div class="card mt12"><div class="ttl s mb8">Items</div>${o.items.map(i=>`<div class="sumr"><span>${esc(i.label)} × ${i.qty}</span><b>${peso(i.subtotal)}</b></div>`).join('')}<div class="hr"></div><div class="sumr t"><span>Total</span><span>${peso(o.total)}</span></div></div>
   <button class="btn o w mt12" data-act="reorder" data-id="${o.id}">Order Again</button>`};
 };
@@ -853,6 +856,7 @@ const A_={
   redeem:d=>{S.form.redeem=S.form.redeem===+d.i?undefined:+d.i;render()},
   place:()=>placeOrder(),
   track:d=>go('track',{id:d.id}),
+  confirmreceived:async d=>{const o=clone(store.orders[d.id]);if(!o||o.pickup||o.stage<8||o.customerReceived)return;o.customerReceived=true;o.receivedAt=Date.now();await saveOrder(o);render();toast(sb?'The shop was notified that your delivery was received':'Delivery marked as received on this device')},
   otab:d=>{go('orders',{tab:d.t},{replace:true})},
   reorder:d=>{const o=store.orders[d.id];if(!o)return;let added=0;
     o.items.forEach(it=>{const ds=S.designs.find(x=>x.id===it.dk);if(ds){S.cart.push({id:'c'+uid(),product:ds.product,sizeId:ds.sizeId,qty:it.qty,m:clone(ds.m),thumb:ds.thumb,name:ds.name,dk:ds.id});added++}});

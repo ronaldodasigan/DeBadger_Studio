@@ -48,6 +48,6 @@ MAIL_FROM=orders@example.com
 MAIL_FROM_NAME=DeBadger Studio
 ```
 
-In Supabase, create a **Database Webhook** for `public.orders` on `INSERT` and `UPDATE`, targeting the HTTPS URL of `mailer/notify.php`. Add the custom header `x-webhook-secret` with the same value as `SUPABASE_WEBHOOK_SECRET`.
+In Supabase, create a **Database Webhook** for `public.orders` on `INSERT` and `UPDATE`, targeting the HTTPS URL of `mailer/notify.php`. Add the custom header `x-webhook-secret` with the same value as `SUPABASE_WEBHOOK_SECRET`. When a customer confirms a delivery from Order Tracking, the webhook sends the owner a dedicated delivery-received notification.
 
 New orders email the owner. Order changes email the customer using the email saved in the order. Keep SMTP credentials only on the PHP server, never in the frontend or GitHub repository.
