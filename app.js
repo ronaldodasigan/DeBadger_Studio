@@ -1,6 +1,6 @@
 'use strict';
 /* =====================================================================
-   PinMirror Studio — customer app + owner console
+  DeBadger Studio — customer app + owner console
    Storage: shared `db` capability when available, else this device only.
    ===================================================================== */
 const $=(s,r=document)=>r.querySelector(s);
@@ -104,7 +104,7 @@ const DEF={
   mirror:{size:58,price:[85,75,65,55],promo:{on:false,price:0}},
   pins:[{id:'s',label:'Small',mm:37,on:true,price:[30,26,22,18]},{id:'m',label:'Medium',mm:50,on:true,price:[40,35,30,25]},{id:'l',label:'Large',mm:58,on:true,price:[50,44,38,32]}],
   shipping:[{id:'std',label:'Standard Delivery',fee:100,on:true,note:'Usually 3–7 days'},{id:'exp',label:'Express Delivery',fee:200,on:true,note:'Usually 1–3 days'},{id:'pick',label:'Pickup',fee:0,on:true,note:'Pick up at the studio'}],
-  pay:[{id:'gcash',label:'GCash',on:true,info:'Send payment to the studio GCash number. We will confirm once received.'},{id:'maya',label:'Maya',on:true,info:'Send payment to the studio Maya account. We will confirm once received.'},{id:'bank',label:'Bank Transfer',on:true,info:'Transfer to the studio bank account and send us the receipt.'},{id:'cod',label:'Cash on Delivery',on:true,info:'Pay in cash when your order arrives or when you pick it up.'},{id:'card',label:'Credit / Debit Card',on:false,info:'Card payment link will be sent to you.'}],
+  pay:[{id:'gcash',label:'GCash',on:true,info:'Send payment to the studio GCash number (09260456426). We will confirm once received.'},{id:'maya',label:'Maya',on:true,info:'Send payment to the studio Maya account. We will confirm once received.'},{id:'bank',label:'Bank Transfer',on:true,info:'Transfer to the studio bank account and send us the receipt.'},{id:'cod',label:'Cash on Delivery',on:true,info:'Pay in cash when your order arrives or when you pick it up.'},{id:'card',label:'Credit / Debit Card',on:false,info:'Card payment link will be sent to you.'}],
   loyalty:{on:true,per:10,rewards:[{pts:300,off:50},{pts:600,off:120}]},
   inv:[
     {id:'shell',name:'58 mm Mirror Keychain Shells',stock:500,low:100,use:{mirror:1}},
@@ -139,10 +139,10 @@ let softRenderHook=()=>{};
 const sbConfig=window.SUPABASE_CONFIG||{};
 const sbReady=Boolean(sbConfig.url&&sbConfig.anonKey&&window.supabase?.createClient);
 const sb=sbReady?window.supabase.createClient(sbConfig.url,sbConfig.anonKey):null;
-const isAdmin=async()=>{if(!sb)return false;const {data,error}=await sb.from('admin_users').select('user_id').eq('user_id',store.user?.id||'').maybeSingle();return !error&&Boolean(data)};
+const isAdmin=async()=>{if(!sb||!store.user||store.user.is_anonymous)return false;const {data,error}=await sb.from('admin_users').select('user_id').eq('user_id',store.user.id).maybeSingle();return !error&&Boolean(data)};
 function browserOrderAlert(o){
   if(!o||!('Notification' in window)||Notification.permission!=='granted')return;
-  new Notification('New PinMirror order', {body:`${o.id} from ${o.customer?.name||'a customer'} · ${orderQty(o)} item${orderQty(o)===1?'':'s'}`});
+  new Notification('New DeBadger order', {body:`${o.id} from ${o.customer?.name||'a customer'} · ${orderQty(o)} item${orderQty(o)===1?'':'s'}`});
 }
 async function saveCfg(){LS.set('cfg',store.cfg);if(sb){const {error}=await sb.from('shop_config').upsert({id:'default',data:clone(store.cfg),updated_at:new Date().toISOString()});if(error)toast('Could not save settings')}}
 async function saveOrder(o){store.orders[o.id]=o;if(sb){const {error}=await sb.from('orders').upsert({id:o.id,owner_key:o.ownerKey,data:clone(o),created_at:new Date(o.createdAt).toISOString()});if(error){toast('Could not save order');throw error}}else LS.set('orders',store.orders)}
@@ -275,7 +275,7 @@ function go(view,p={},opts={}){
 function back(){const h=S.hist.pop();S.view=h?h.v:'home';S.p=h?h.p:{};closeModal();render(true)}
 const cartCount=()=>S.cart.reduce((s,i)=>s+1,0);
 const isFav=id=>S.favs.includes(id);
-function topbar(){return `<div class="top"><div class="logo"><span class="lm"></span><b>PinMirror</b><span>Studio</span></div><div class="ics"><button class="ib" data-act="search" aria-label="Search">${ic('search')}</button><button class="ib" data-act="nav" data-v="notif" aria-label="Notifications">${ic('bell',notifCount()?`data-badge="${notifCount()}"`:'')}</button><button class="ib" data-act="nav" data-v="cart" aria-label="Cart">${ic('cart',cartCount()?`data-badge="${cartCount()}"`:'')}</button></div></div>`}
+function topbar(){return `<div class="top"><div class="logo"><span class="lm"></span><b>DeBadger</b><span>Studio</span></div><div class="ics"><button class="ib" data-act="search" aria-label="Search">${ic('search')}</button><button class="ib" data-act="nav" data-v="notif" aria-label="Notifications">${ic('bell',notifCount()?`data-badge="${notifCount()}"`:'')}</button><button class="ib" data-act="nav" data-v="cart" aria-label="Cart">${ic('cart',cartCount()?`data-badge="${cartCount()}"`:'')}</button></div></div>`}
 const bk=(title,extra='')=>`<div class="bk"><button class="ib" data-act="back" aria-label="Back">${ic('back')}</button><div class="ttl s f1">${title}</div>${extra}</div>`;
 function navHTML(){
   const cur={home:'home',shop:'shop',product:'shop',ready:'shop',designer:'design',qty:'design',preview:'design',cart:'orders',checkout:'orders',confirm:'orders',orders:'orders',track:'orders',account:'account',designs:'account',favs:'account',notif:'account',bulk:'shop'}[S.view];
@@ -629,7 +629,7 @@ V.notif=()=>{
 V.account=()=>{
   const p=S.profile,pts=myPoints(),L=cfg().loyalty;
   const initials=(p.name||'You').split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase();
-  const isAdminOK=store.user===null||store.adminOK!==false;
+  const isAdminOK=store.user===null||store.user?.is_anonymous||store.adminOK===true;
   return{body:`${topbar()}<h1 class="ttl mb8">Account</h1>
   <div class="card row g12"><div style="width:52px;height:52px;border-radius:50%;background:var(--pink-l);color:var(--pink-d);display:grid;place-items:center;font:800 18px var(--d)">${esc(initials)}</div><div class="f1"><div class="b">${esc(p.name||'Guest')}</div><div class="mut sm">${myOrders().length} orders${p.phone?' · '+esc(p.phone):''}</div></div>${L.on?`<span class="pill pk">${ic('star','style="width:12px;height:12px"')}${pts} pts</span>`:''}</div>
   <div class="row sp mt16 mb8"><h3 class="ttl s">My Designs</h3><button class="btn t sm" data-act="nav" data-v="designs">See all</button></div>
@@ -682,9 +682,9 @@ function customers(){
 const ANAV=[['dash','home','Dashboard'],['orders','orders','Orders'],['pricing','card','Pricing'],['inv','pkg','Inventory'],['cust','users','Customers'],['rep','chart','Reports'],['loy','star','Loyalty'],['set','gear','Settings']];
 function adminShell(){
   const pg=S.adminPage;let body='';
-  if(store.user&&store.adminOK===false)body=`<div class="apg"><div class="card"><b>Owner access only</b><p class="mut">Ask the shop owner to give you edit access to open the console.</p></div></div>`;
+  if(!store.user||store.user.is_anonymous||store.adminOK!==true)body=`<div class="apg"><div class="card"><b>Owner access only</b><p class="mut">Sign in with an authorized owner account to open the console.</p></div></div>`;
   else body=`<div class="apg">${({dash:aDash,orders:aOrders,pricing:aPricing,inv:aInv,cust:aCust,rep:aRep,loy:aLoy,set:aSet})[pg]()}</div>`;
-  return `<div class="ahd"><div class="logo"><span class="lm"></span><b>PinMirror</b><span>Owner console</span></div><span class="pill ${sb?'ok':'warn'}">${sb?'Supabase data':'This device only'}</span><span class="f1"></span>${sb?`<button class="btn sm" style="background:#fff;color:var(--pink-d)" data-act="requestAlerts">${ic('bell')}Enable alerts</button>`:''}<button class="btn sm" style="background:#fff;color:var(--pink-d)" data-act="exitadmin">Back to shop</button></div>
+  return `<div class="ahd"><div class="logo"><span class="lm"></span><b>DeBadger</b><span>Owner console</span></div><span class="pill ${sb?'ok':'warn'}">${sb?'Supabase data':'This device only'}</span><span class="f1"></span>${sb?`<button class="btn sm" style="background:#fff;color:var(--pink-d)" data-act="requestAlerts">${ic('bell')}Enable alerts</button>`:''}<button class="btn sm" style="background:#fff;color:var(--pink-d)" data-act="exitadmin">Back to shop</button></div>
   <div class="anav">${ANAV.map(([k,i,l])=>`<button data-act="apage" data-k="${k}" class="${pg===k?'on':''}">${ic(i)}${l}</button>`).join('')}</div>${body}`;
 }
 function statusCounts(){
@@ -866,8 +866,11 @@ const A_={
   bsize:d=>{S.form.bulk=Object.assign(S.form.bulk||{},{size:d.id});render()},
   sendbulk:()=>sendBulk(),
   admin:async()=>{
-    if(sb&&(!store.user||store.user.is_anonymous)){return modal(`<div class="ttl s mb8">Owner sign in</div><p class="mut sm">Sign in with the Supabase account that has owner access.</p><label class="lab" for="owner-email">Email</label><input class="in" id="owner-email" type="email" autocomplete="email"><label class="lab" for="owner-password">Password</label><input class="in" id="owner-password" type="password" autocomplete="current-password"><div class="row g8 mt12"><button class="btn o f" data-act="mclose2">Cancel</button><button class="btn f" data-act="ownerlogin">Sign in</button></div>`)}
-    if(store.user)store.adminOK=await isAdmin();else store.adminOK=true;subscribeAll();S.adminPage='dash';go('adm',{},{})
+    if(!sb)return toast('Owner authentication is not configured. Add Supabase credentials first.');
+    if(!store.user||store.user.is_anonymous){return modal(`<div class="ttl s mb8">Owner sign in</div><p class="mut sm">Sign in with the Supabase account that has owner access.</p><label class="lab" for="owner-email">Email</label><input class="in" id="owner-email" type="email" autocomplete="email"><label class="lab" for="owner-password">Password</label><input class="in" id="owner-password" type="password" autocomplete="current-password"><div class="row g8 mt12"><button class="btn o f" data-act="mclose2">Cancel</button><button class="btn f" data-act="ownerlogin">Sign in</button></div>`)}
+    store.adminOK=await isAdmin();
+    if(!store.adminOK)return toast('This account is not an owner');
+    subscribeAll();S.adminPage='dash';go('adm',{},{})
   },
   ownerlogin:async()=>{
     const email=$('#owner-email')?.value.trim(),password=$('#owner-password')?.value;

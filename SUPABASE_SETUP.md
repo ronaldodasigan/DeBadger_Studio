@@ -45,7 +45,7 @@ SMTP_PORT=587
 SMTP_USERNAME=your-smtp-user
 SMTP_PASSWORD=your-smtp-password
 MAIL_FROM=orders@example.com
-MAIL_FROM_NAME=PinMirror Studio
+MAIL_FROM_NAME=DeBadger Studio
 ```
 
 In Supabase, create a **Database Webhook** for `public.orders` on `INSERT` and `UPDATE`, targeting the HTTPS URL of `mailer/notify.php`. Add the custom header `x-webhook-secret` with the same value as `SUPABASE_WEBHOOK_SECRET`.

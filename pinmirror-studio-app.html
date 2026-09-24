@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>PinMirror Studio</title>
+<title>DeBadger Studio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&display=swap">
 <style>
@@ -221,7 +221,7 @@ input[type=range]{width:100%;accent-color:var(--pink);height:28px}
 <script>
 'use strict';
 /* =====================================================================
-   PinMirror Studio — customer app + owner console
+  DeBadger Studio — customer app + owner console
    Storage: shared `db` capability when available, else this device only.
    ===================================================================== */
 const $=(s,r=document)=>r.querySelector(s);
@@ -488,7 +488,7 @@ function go(view,p={},opts={}){
 function back(){const h=S.hist.pop();S.view=h?h.v:'home';S.p=h?h.p:{};closeModal();render(true)}
 const cartCount=()=>S.cart.reduce((s,i)=>s+1,0);
 const isFav=id=>S.favs.includes(id);
-function topbar(){return `<div class="top"><div class="logo"><span class="lm"></span><b>PinMirror</b><span>Studio</span></div><div class="ics"><button class="ib" data-act="search" aria-label="Search">${ic('search')}</button><button class="ib" data-act="nav" data-v="notif" aria-label="Notifications">${ic('bell',notifCount()?`data-badge="${notifCount()}"`:'')}</button><button class="ib" data-act="nav" data-v="cart" aria-label="Cart">${ic('cart',cartCount()?`data-badge="${cartCount()}"`:'')}</button></div></div>`}
+function topbar(){return `<div class="top"><div class="logo"><span class="lm"></span><b>DeBadger</b><span>Studio</span></div><div class="ics"><button class="ib" data-act="search" aria-label="Search">${ic('search')}</button><button class="ib" data-act="nav" data-v="notif" aria-label="Notifications">${ic('bell',notifCount()?`data-badge="${notifCount()}"`:'')}</button><button class="ib" data-act="nav" data-v="cart" aria-label="Cart">${ic('cart',cartCount()?`data-badge="${cartCount()}"`:'')}</button></div></div>`}
 const bk=(title,extra='')=>`<div class="bk"><button class="ib" data-act="back" aria-label="Back">${ic('back')}</button><div class="ttl s f1">${title}</div>${extra}</div>`;
 function navHTML(){
   const cur={home:'home',shop:'shop',product:'shop',ready:'shop',designer:'design',qty:'design',preview:'design',cart:'orders',checkout:'orders',confirm:'orders',orders:'orders',track:'orders',account:'account',designs:'account',favs:'account',notif:'account',bulk:'shop'}[S.view];
@@ -898,7 +898,7 @@ function adminShell(){
   const pg=S.adminPage;let body='';
   if(store.user&&store.adminOK===false)body=`<div class="apg"><div class="card"><b>Owner access only</b><p class="mut">Ask the shop owner to give you edit access to open the console.</p></div></div>`;
   else body=`<div class="apg">${({dash:aDash,orders:aOrders,pricing:aPricing,inv:aInv,cust:aCust,rep:aRep,loy:aLoy,set:aSet})[pg]()}</div>`;
-  return `<div class="ahd"><div class="logo"><span class="lm"></span><b>PinMirror</b><span>Owner console</span></div><span class="pill ${store.db?'ok':'warn'}">${store.db?'Shared data':'This device only'}</span><span class="f1"></span><button class="btn sm" style="background:#fff;color:var(--pink-d)" data-act="exitadmin">Back to shop</button></div>
+  return `<div class="ahd"><div class="logo"><span class="lm"></span><b>DeBadger</b><span>Owner console</span></div><span class="pill ${store.db?'ok':'warn'}">${store.db?'Shared data':'This device only'}</span><span class="f1"></span><button class="btn sm" style="background:#fff;color:var(--pink-d)" data-act="exitadmin">Back to shop</button></div>
   <div class="anav">${ANAV.map(([k,i,l])=>`<button data-act="apage" data-k="${k}" class="${pg===k?'on':''}">${ic(i)}${l}</button>`).join('')}</div>${body}`;
 }
 function statusCounts(){

@@ -33,7 +33,7 @@ $ownerEmail = filter_var((string)(getenv('OWNER_EMAIL') ?: ''), FILTER_VALIDATE_
 $recipients = [];
 
 if ($event === 'INSERT' && $ownerEmail) {
-    $recipients[] = [$ownerEmail, 'PinMirror owner'];
+    $recipients[] = [$ownerEmail, 'DeBadger owner'];
 }
 if ($event !== 'INSERT' && $customerEmail) {
     $recipients[] = [$customerEmail, (string)($customer['name'] ?? 'Customer')];
@@ -53,9 +53,9 @@ try {
     $mail->Password = getenv('SMTP_PASSWORD') ?: '';
     $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
     $mail->Port = (int)(getenv('SMTP_PORT') ?: 587);
-    $mail->setFrom(getenv('MAIL_FROM') ?: $mail->Username, getenv('MAIL_FROM_NAME') ?: 'PinMirror Studio');
+    $mail->setFrom(getenv('MAIL_FROM') ?: $mail->Username, getenv('MAIL_FROM_NAME') ?: 'DeBadger Studio');
     $mail->isHTML(true);
-    $mail->Subject = $event === 'INSERT' ? 'New PinMirror order ' . $order['id'] : 'Order update ' . $order['id'];
+    $mail->Subject = $event === 'INSERT' ? 'New DeBadger order ' . $order['id'] : 'Order update ' . $order['id'];
     $mail->Body = sprintf(
         '<h2>%s</h2><p>Order <strong>%s</strong></p><p>Customer: %s</p><p>Status: %s</p><p>Total: ₱%s</p>',
         htmlspecialchars($event === 'INSERT' ? 'New order received' : 'Your order was updated', ENT_QUOTES, 'UTF-8'),
