@@ -175,6 +175,7 @@ function subscribeAll(){
 const T=['Order received','Design received','Artwork review','Artwork confirmed','Printing','Assembly','Quality check','Ready','Shipped','Completed'];
 const MSG=['We received your order.','We received your design.','Your design is being reviewed.','Your design has been confirmed.','Your order is now being printed.','Your order is being assembled.','Your order passed quality checking.','READY','Your order has been shipped.','Your order is complete. Thank you!'];
 const PAYST=['Awaiting payment','Deposit received','Paid','Refunded'];
+const isPaid=o=>o?.payment?.status==='Paid';
 const stepLabel=(o,i)=>i===7?(o.pickup?'Ready for pickup':'Ready for shipping'):T[i];
 const stepMsg=(o,i)=>i===7?(o.pickup?'Your order is ready for pickup.':'Your order is packed and ready to ship.'):MSG[i];
 const stepsOf=o=>T.map((_,i)=>i).filter(i=>!(o.pickup&&i===8));
@@ -690,7 +691,8 @@ function adminShell(){
 function statusCounts(){
   const os=allOrders(),t0=startOfDay(Date.now()),m0=new Date();m0.setDate(1);m0.setHours(0,0,0,0);
   const sum=a=>a.reduce((s,o)=>s+o.total,0);
-  return{today:os.filter(o=>o.createdAt>=t0).length,fresh:os.filter(o=>!o.seen).length,review:os.filter(o=>o.stage===2).length,prod:os.filter(o=>o.stage>=3&&o.stage<=6).length,ready:os.filter(o=>o.stage===7).length,shipped:os.filter(o=>o.stage===8).length,ts:sum(os.filter(o=>o.createdAt>=t0)),ms:sum(os.filter(o=>o.createdAt>=m0.getTime()))};
+  const paid=os.filter(isPaid);
+  return{today:os.filter(o=>o.createdAt>=t0).length,fresh:os.filter(o=>!o.seen).length,review:os.filter(o=>o.stage===2).length,prod:os.filter(o=>o.stage>=3&&o.stage<=6).length,ready:os.filter(o=>o.stage===7).length,shipped:os.filter(o=>o.stage===8).length,ts:sum(paid.filter(o=>o.createdAt>=t0)),ms:sum(paid.filter(o=>o.createdAt>=m0.getTime()))};
 }
 function ordersTable(list){
   return `<div class="tblw"><table class="tbl"><thead><tr><th>Order</th><th>Customer</th><th>Product</th><th>Design</th><th>Qty</th><th>Size</th><th>Ordered</th><th>Needed by</th><th>Payment</th><th>Production</th><th>Delivery</th><th></th></tr></thead><tbody>
@@ -739,7 +741,7 @@ function aCust(){
   ${list.map(c=>`<tr><td><b>${esc(c.name)}</b></td><td>${esc(c.phone)}</td><td>${esc(c.email)}</td><td>${c.n}</td><td>${peso(c.total)}</td><td>${c.designs}</td><td>${fmtDate(c.latest)}</td></tr>`).join('')||'<tr><td colspan="7" class="mut" style="padding:24px;text-align:center">No customers yet.</td></tr>'}</tbody></table></div>`;
 }
 function series(mode){
-  const os=allOrders().filter(o=>o.payment.status!=='Refunded'),out=[];const now=new Date();
+  const os=allOrders().filter(isPaid),out=[];const now=new Date();
   const n=mode==='day'?7:mode==='week'?8:6;
   for(let i=n-1;i>=0;i--){
     let a,b,label;
@@ -751,7 +753,7 @@ function series(mode){
   return out;
 }
 function aRep(){
-  const os=allOrders(),sr=series(S.rep),max=Math.max(1,...sr.map(x=>x.v));
+  const os=allOrders().filter(isPaid),sr=series(S.rep),max=Math.max(1,...sr.map(x=>x.v));
   const pcs=p=>os.reduce((s,o)=>s+o.items.filter(i=>i.product===p).reduce((a,i)=>a+i.qty,0),0);
   const totalQty=os.reduce((s,o)=>s+orderQty(o),0),bulk=os.filter(o=>orderQty(o)>=50).length;
   const cs=customers(),rep=cs.filter(c=>c.n>1).length;
@@ -791,6 +793,7 @@ async function openOrder(id){
 async function setStage(id,i){
   const o=clone(store.orders[id]);if(!o)return;i=Number(i);
   if(i===o.stage)return;
+  if(i>=5&&!isPaid(o)){toast('Mark the payment as Paid before moving this order to Assembly');return}
   const now=Date.now();
   if(i>o.stage){for(let k=o.stage+1;k<=i;k++){if(o.pickup&&k===8)continue;o.log.push({t:now+k,msg:stepMsg(o,k)})}}
   o.stage=i;
